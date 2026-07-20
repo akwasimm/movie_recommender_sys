@@ -1,0 +1,34 @@
+project:
+  name: "CineScope"
+  version: "1.0.0"
+  description: "AI-Powered Movie Recommendation Engine"
+
+paths:
+  data_processed: "data/processed"
+  data_embeddings: "data/embeddings"
+  models_collaborative: "models/collaborative"
+  models_graph: "models/graph"
+
+models:
+  als:
+    factors: 128
+    regularization: 0.01
+    iterations: 50
+    alpha: 40
+  bert:
+    model_name: "all-MiniLM-L6-v2"
+    embedding_dim: 384
+  knowledge_graph:
+    min_entity_frequency: 5
+  hybrid:
+    weights:
+      als: 0.40
+      bert: 0.25
+      kg: 0.20
+      popularity: 0.15
+    candidate_pool: 50
+
+api:
+  host: "0.0.0.0"
+  port: 8080
+  cors_origins: ["*"]

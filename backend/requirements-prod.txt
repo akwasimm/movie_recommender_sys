@@ -1,0 +1,11 @@
+numpy
+pandas
+pyarrow
+scikit-learn
+implicit
+scipy
+fastapi
+uvicorn
+python-dotenv
+requests
+pyyaml

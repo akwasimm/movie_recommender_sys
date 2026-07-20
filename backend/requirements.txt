@@ -1,0 +1,14 @@
+numpy
+pandas
+pyarrow
+scikit-learn
+implicit
+torch
+transformers
+sentence-transformers
+scipy
+fastapi
+uvicorn
+python-dotenv
+requests
+pyyaml

@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+.env
+.vscode
+.git
+.gitignore
+*.md
+requirements.txt.bak
+data/external
+data/raw
+models/content
+models/collaborative/als_matrix.pkl
+models/collaborative/als_model.pkl
+models/collaborative/als_meta.pkl
+data/processed/interactions.parquet

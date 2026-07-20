@@ -1,0 +1,26 @@
+# Environment & secrets
+.env
+**/.env
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large model files (original formats - use compact versions instead)
+backend/models/collaborative/als_matrix.pkl
+backend/models/collaborative/als_model.pkl
+backend/models/collaborative/als_meta.pkl
+backend/models/collaborative/als_matrix.npz
+backend/data/processed/interactions.parquet

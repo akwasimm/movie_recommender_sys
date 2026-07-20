@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineScope — AI Movie Discovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#08080c;--bg-card:#111118;--bg-hover:#1a1a24;--gold:#c9a84c;--gold-dim:#8a6d2b;--gold-glow:rgba(201,168,76,0.12);--text:#e8e4dc;--text-dim:#8a8680;--text-muted:#555;--radius:6px}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+::selection{background:var(--gold);color:var(--bg)}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;gap:40px;padding:0 48px;height:64px;background:linear-gradient(180deg,rgba(8,8,12,0.95) 0%,transparent 100%);transition:background 0.3s}
+.nav.scrolled{background:rgba(8,8,12,0.97)}
+.nav-logo{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:var(--gold);letter-spacing:0.06em;flex-shrink:0;cursor:pointer}
+.nav-logo span{font-weight:400;color:var(--text-dim);font-style:italic;margin-left:3px}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links button{background:none;border:none;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:color 0.2s;padding:4px 0;border-bottom:2px solid transparent}
+.nav-links button:hover,.nav-links button.active{color:var(--text);border-bottom-color:var(--gold)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:20px}
+.search-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--text-dim);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;padding:8px 16px;border-radius:20px;display:flex;align-items:center;gap:8px;transition:all 0.2s}
+.search-btn:hover{background:rgba(255,255,255,0.1);color:var(--text);border-color:rgba(255,255,255,0.15)}
+.guest-pill{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:20px;cursor:pointer;transition:background 0.2s}
+.guest-pill:hover{background:rgba(255,255,255,0.1)}
+.guest-pill .avatar{width:24px;height:24px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg)}
+.guest-pill span{font-size:12px;color:var(--text-dim)}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* HERO */
+.hero{position:relative;height:85vh;min-height:560px;max-height:800px;display:flex;align-items:flex-end;overflow:hidden}
+.hero-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease}
+.hero-slide.active{opacity:1}
+.hero-slide .backdrop{position:absolute;inset:0;background-size:cover;background-position:center top}
+.hero-slide .backdrop::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,8,12,0.2) 0%,rgba(8,8,12,0.5) 40%,var(--bg) 100%),linear-gradient(90deg,rgba(8,8,12,0.8) 0%,transparent 60%)}
+.hero-info{position:relative;z-index:2;padding:0 60px 80px;max-width:680px}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.2);border-radius:4px;font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(42px,6vw,64px);font-weight:700;line-height:1.06;margin-bottom:14px}
+.hero-meta{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-dim);margin-bottom:14px}
+.hero-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--text-muted)}
+.hero-meta .rating{color:var(--gold);font-weight:600}
+.hero-overview{font-size:14px;line-height:1.65;color:var(--text-dim);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:24px}
+.hero-actions{display:flex;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-primary{background:var(--gold);color:var(--bg)}.btn-primary:hover{background:#d4b35a;transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,0.08);color:var(--text);border:1px solid rgba(255,255,255,0.1)}.btn-ghost:hover{background:rgba(255,255,255,0.14)}
+.hero-dots{position:absolute;bottom:80px;right:60px;z-index:3;display:flex;gap:8px}
+.hero-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s}
+.hero-dots .dot.active{background:var(--gold);width:24px;border-radius:4px}
+
+/* CONTENT ROWS */
+.rows-wrap{margin-top:-40px;position:relative;z-index:5}
+.content-row{padding:0 0 36px}
+.row-header{display:flex;align-items:baseline;gap:16px;padding:0 60px;margin-bottom:16px}
+.row-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600}
+.row-line{flex:1;height:1px;background:linear-gradient(90deg,var(--gold-dim),transparent 80%)}
+.row-scroll{display:flex;gap:14px;overflow-x:auto;overflow-y:visible;padding:4px 60px 20px;scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none}
+.row-scroll::-webkit-scrollbar{display:none}
+
+/* CARD */
+.card{flex-shrink:0;width:185px;cursor:pointer;position:relative;border-radius:var(--radius);overflow:hidden;background:var(--bg-card);transition:transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94),box-shadow 0.35s,z-index 0}
+.card:hover{transform:scale(1.08);box-shadow:0 16px 48px rgba(0,0,0,0.6);z-index:10}
+.card .poster{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#15151f}
+.card .ph{width:100%;aspect-ratio:2/3;background:linear-gradient(135deg,#15151f,#1a1a24);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--text-muted)}
+.card .overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,8,12,0.95) 0%,rgba(8,8,12,0.3) 40%,transparent 60%);opacity:0;transition:opacity 0.3s;display:flex;flex-direction:column;justify-content:flex-end;padding:14px}
+.card:hover .overlay{opacity:1}
+.card .ov-title{font-size:13px;font-weight:500;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .ov-meta{font-size:11px;color:var(--text-dim);display:flex;gap:6px;align-items:center}
+.card .ov-meta .r{color:var(--gold);font-weight:600}
+.card .ov-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.card .ov-genres span{padding:2px 6px;border:1px solid rgba(201,168,76,0.2);border-radius:3px;font-size:9px;color:var(--gold-dim)}
+
+/* SEARCH OVERLAY */
+.search-overlay{position:fixed;inset:0;z-index:200;background:rgba(8,8,12,0.95);backdrop-filter:blur(12px);display:flex;flex-direction:column;align-items:center;padding-top:120px;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.search-overlay.open{opacity:1;pointer-events:auto}
+.search-overlay .close-btn{position:absolute;top:20px;right:40px;background:none;border:none;color:var(--text-dim);font-size:24px;cursor:pointer}
+.search-box{width:90%;max-width:640px;display:flex;gap:0;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s}
+.search-box:focus-within{border-color:var(--gold-dim);box-shadow:0 0 0 3px var(--gold-glow)}
+.search-box input{flex:1;padding:16px 24px;background:none;border:none;outline:none;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif}
+.search-box input::placeholder{color:var(--text-muted)}
+.search-box button{padding:16px 28px;background:var(--gold);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:var(--bg);transition:background 0.2s}
+.search-box button:hover{background:#d4b35a}
+.search-results{width:90%;max-width:640px;margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;max-height:60vh;overflow-y:auto;padding:0 4px 20px;scrollbar-width:thin;scrollbar-color:var(--text-muted) transparent}
+.sr-card{cursor:pointer;border-radius:var(--radius);overflow:hidden;background:var(--bg-card);transition:transform 0.2s}
+.sr-card:hover{transform:translateY(-3px)}
+.sr-card img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
+.sr-card .sr-info{padding:8px 10px}
+.sr-card .sr-title{font-size:12px;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sr-card .sr-year{font-size:11px;color:var(--text-dim)}
+
+/* FOR YOU PAGE */
+.foryou-section{padding:100px 60px 40px}
+.foryou-header{text-align:center;margin-bottom:48px}
+.foryou-header h1{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:700;margin-bottom:8px}
+.foryou-header p{font-size:14px;color:var(--text-dim)}
+.foryou-header .gold-bar{width:60px;height:2px;background:var(--gold);margin:16px auto 0}
+
+/* ABOUT PAGE */
+.about{padding:100px 60px 60px;max-width:900px;margin:0 auto}
+.about h1{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:700;margin-bottom:8px}
+.about .subtitle{font-size:16px;color:var(--text-dim);margin-bottom:48px}
+.about .gold-bar{width:60px;height:2px;background:var(--gold);margin-bottom:48px}
+.about h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;margin:40px 0 16px;color:var(--gold)}
+.about h3{font-size:16px;font-weight:600;margin:28px 0 10px;color:var(--text)}
+.about p{font-size:14px;line-height:1.8;color:var(--text-dim);margin-bottom:16px}
+.about ul{margin:8px 0 16px 24px}
+.about li{font-size:14px;line-height:1.8;color:var(--text-dim);margin-bottom:4px}
+.about code{background:rgba(201,168,76,0.1);color:var(--gold);padding:2px 8px;border-radius:3px;font-size:13px}
+.about .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:20px 0 32px}
+.about .stat-card{background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:20px;text-align:center}
+.about .stat-card .num{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--gold)}
+.about .stat-card .label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px}
+.about .arch-box{background:var(--bg-card);border:1px solid rgba(201,168,76,0.1);border-radius:var(--radius);padding:24px;margin:20px 0;font-family:monospace;font-size:13px;line-height:1.7;color:var(--text-dim);white-space:pre-wrap;overflow-x:auto}
+.about .model-card{background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:24px;margin:16px 0}
+.about .model-card h4{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--gold);margin-bottom:8px}
+.about .model-card p{margin-bottom:8px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.modal-bg.open{opacity:1;pointer-events:auto}
+.modal{width:92%;max-width:880px;max-height:90vh;background:var(--bg-card);border-radius:10px;border:1px solid rgba(255,255,255,0.06);overflow-y:auto;overflow-x:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.6);transform:translateY(30px) scale(0.97);transition:transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)}
+.modal-bg.open .modal{transform:translateY(0) scale(1)}
+.modal-x{position:sticky;top:0;float:right;z-index:10;width:36px;height:36px;margin:12px 12px 0 0;background:rgba(8,8,12,0.7);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:16px;transition:background 0.2s}
+.modal-x:hover{background:rgba(255,255,255,0.1)}
+.modal-hero{position:relative;height:320px;overflow:hidden}
+.modal-hero img{width:100%;height:100%;object-fit:cover}
+.modal-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg-card) 0%,transparent 50%)}
+.modal-content{padding:0 36px 36px;margin-top:-70px;position:relative;z-index:2}
+.modal-top{display:flex;gap:24px;margin-bottom:28px}
+.modal-poster{width:140px;flex-shrink:0;border-radius:var(--radius);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+.modal-poster img{width:100%;display:block}
+.modal-poster .ph{aspect-ratio:2/3;width:100%;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--text-muted)}
+.modal-meta{flex:1;padding-top:36px}
+.modal-meta h2{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;line-height:1.12;margin-bottom:6px}
+.modal-meta .meta-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--text-dim);margin-bottom:14px}
+.modal-meta .meta-row .sep{width:3px;height:3px;border-radius:50%;background:var(--text-muted)}
+.modal-meta .genre-pill{display:inline-block;padding:3px 10px;border:1px solid rgba(201,168,76,0.2);border-radius:20px;font-size:11px;color:var(--gold-dim)}
+.modal-meta .overview{font-size:14px;line-height:1.7;color:var(--text-dim);margin-top:14px}
+.cast-wrap{margin-bottom:28px}
+.cast-wrap h3{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px}
+.cast-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.cast-row::-webkit-scrollbar{display:none}
+.cast-item{flex-shrink:0;width:80px;text-align:center}
+.cast-item img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.1);background:var(--bg)}
+.cast-item .cn{font-size:10px;margin-top:6px;line-height:1.2}
+.cast-item .cc{font-size:9px;color:var(--text-muted)}
+.rec-wrap{margin-bottom:28px}
+.rec-wrap h3{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.rec-wrap h3 .dot{width:6px;height:6px;border-radius:50%}
+.dot-bert{background:#5b8def}.dot-als{background:#e07a5f}.dot-kg{background:#81b29a}
+.rec-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.rec-row::-webkit-scrollbar{display:none}
+.rec-item{flex-shrink:0;width:110px;cursor:pointer;border-radius:var(--radius);overflow:hidden;background:var(--bg);transition:transform 0.2s}
+.rec-item:hover{transform:translateY(-3px)}
+.rec-item img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
+.rec-item .ri-info{padding:8px}
+.rec-item .ri-title{font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px}
+.rec-item .ri-score{font-size:10px;color:var(--gold);font-weight:600}
+
+.skeleton{background:linear-gradient(90deg,var(--bg-card) 25%,var(--bg-hover) 50%,var(--bg-card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius)}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);z-index:400;background:var(--bg-card);border:1px solid rgba(201,168,76,0.15);border-radius:var(--radius);padding:12px 24px;font-size:13px;color:var(--text-dim);box-shadow:0 8px 24px rgba(0,0,0,0.4);opacity:0;transition:all 0.3s}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.footer{text-align:center;padding:60px 40px;border-top:1px solid rgba(201,168,76,0.06);font-size:12px;color:var(--text-muted)}
+.footer strong{color:var(--gold-dim)}
+
+/* number input no arrows */
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+/* setup overlay */
+#setupOverlay input::placeholder{color:var(--text-muted)}
+#setupOverlay button:disabled{opacity:0.5;cursor:not-allowed}
+
+@media(max-width:768px){.nav{padding:0 20px;gap:16px}.hero-info{padding:0 24px 60px}.row-header{padding:0 24px}.row-scroll{padding:4px 24px 20px}.card{width:140px}.modal-content{padding:0 20px 24px}.modal-top{flex-direction:column;align-items:center;text-align:center}.modal-meta .meta-row{justify-content:center}.hero-dots{right:24px;bottom:60px}.about{padding:100px 24px 40px}.foryou-section{padding:100px 24px 40px}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-logo" onclick="showPage('discover')">CINE<span>SCOPE</span></div>
+  <div class="nav-links">
+    <button onclick="showPage('discover')" class="active" id="nav-discover">Discover</button>
+    <button onclick="showPage('foryou')" id="nav-foryou">For You</button>
+    <button onclick="showPage('about')" id="nav-about">About</button>
+  </div>
+  <div class="nav-right">
+    <button class="search-btn" onclick="openSearch()">Search</button>
+    <div class="guest-pill" onclick="showPage('foryou')">
+      <div class="avatar">G</div>
+      <span>Guest</span>
+    </div>
+  </div>
+</nav>
+
+<!-- DISCOVER PAGE -->
+<div class="page active" id="page-discover">
+  <section class="hero" id="hero"></section>
+  <div class="rows-wrap" id="rowsWrap"></div>
+</div>
+
+<!-- FOR YOU PAGE -->
+<div class="page" id="page-foryou">
+  <div class="foryou-section">
+    <div class="foryou-header">
+      <h1>For You</h1>
+      <p>AI-curated picks that refresh every time you visit</p>
+      <div class="gold-bar"></div>
+    </div>
+    <div id="foryouContent"></div>
+  </div>
+</div>
+
+<!-- ABOUT PAGE -->
+<div class="page" id="page-about">
+  <div class="about" id="aboutContent"></div>
+</div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay">
+  <button class="close-btn" onclick="closeSearch()">X</button>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search movies..." autocomplete="off">
+    <button onclick="doSearch()">Search</button>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
+    <button class="modal-x" onclick="closeModal()">X</button>
+    <div class="modal-hero" id="modalHero"></div>
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer"><strong>CineScope</strong> &mdash; AI-Powered Movie Discovery<br>ALS &times; BERT &times; Knowledge Graph</div>
+
+<script>
+let API=localStorage.getItem('cinescope_api')||'';
+let heroMovies=[], heroIdx=0, heroTimer=null, currentPage='discover';
+
+async function testConnection(url){
+  try{const r=await fetch(url+'/health',{signal:AbortSignal.timeout(5000)});return r.ok}catch(e){return false}
+}
+
+function showSetup(){
+  const overlay=document.createElement('div');
+  overlay.id='setupOverlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px';
+  overlay.innerHTML=`
+    <div style="font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:700;color:var(--gold)">CINE<span style="font-weight:400;color:var(--text-dim);font-style:italic">SCOPE</span></div>
+    <p style="color:var(--text-dim);font-size:14px">Connect to your CineScope backend</p>
+    <div style="display:flex;gap:0;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:6px;overflow:hidden;width:90%;max-width:500px">
+      <input id="setupUrl" type="text" value="http://localhost:8080" style="flex:1;padding:16px 20px;background:none;border:none;outline:none;color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif">
+      <button id="setupBtn" onclick="connectBackend()" style="padding:16px 28px;background:var(--gold);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:var(--bg)">Connect</button>
+    </div>
+    <p id="setupMsg" style="color:var(--text-muted);font-size:12px;min-height:18px"></p>`;
+  document.body.appendChild(overlay);
+}
+
+async function connectBackend(){
+  const url=document.getElementById('setupUrl').value.trim().replace(/\/+$/,'');
+  const btn=document.getElementById('setupBtn');
+  const msg=document.getElementById('setupMsg');
+  btn.textContent='Testing...';btn.disabled=true;msg.textContent='';
+  const ok=await testConnection(url);
+  if(ok){
+    localStorage.setItem('cinescope_api',url);
+    API=url;
+    document.getElementById('setupOverlay').remove();
+    boot();
+  }else{
+    msg.textContent='Cannot connect. Make sure the backend is running and CORS is enabled.';
+    btn.textContent='Connect';btn.disabled=false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  if(!API){showSetup();return}
+  const ok=await testConnection(API);
+  if(!ok){showSetup();return}
+  boot();
+});
+
+function boot(){
+  loadHero();loadRows();loadAbout();setupNav();
+  document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSearch();closeModal()}});
+}
+function setupNav(){window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>50)})}
+
+/* PAGE SWITCHING */
+function showPage(name){
+  currentPage=name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-links button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+name)?.classList.add('active');
+  window.scrollTo({top:0,behavior:'instant'});
+  if(name==='foryou') loadForYou();
+}
+
+/* HERO */
+async function loadHero(){
+  try{const res=await fetch(`${API}/api/trending?n=8`);heroMovies=await res.json();if(heroMovies.length)renderHero();}catch(e){}
+}
+function renderHero(){
+  const el=document.getElementById('hero');
+  el.innerHTML=heroMovies.slice(0,8).map((m,i)=>{
+    const bg=m.backdrop_path?`url(${m.backdrop_path})`:'none';
+    return `<div class="hero-slide${i===0?' active':''}"><div class="backdrop" style="background-image:${bg}"></div></div>`;
+  }).join('');
+  el.innerHTML+=`<div class="hero-info" id="heroInfo"></div>`;
+  el.innerHTML+=`<div class="hero-dots" id="heroDots">${heroMovies.slice(0,8).map((_,i)=>`<div class="dot${i===0?' active':''}" onclick="goToSlide(${i})"></div>`).join('')}</div>`;
+  updateHeroInfo(0);
+  heroTimer=setInterval(()=>{heroIdx=(heroIdx+1)%Math.min(heroMovies.length,8);goToSlide(heroIdx)},7000);
+}
+function goToSlide(idx){heroIdx=idx;document.querySelectorAll('.hero-slide').forEach((s,i)=>s.classList.toggle('active',i===idx));document.querySelectorAll('.hero-dots .dot').forEach((d,i)=>d.classList.toggle('active',i===idx));updateHeroInfo(idx)}
+function updateHeroInfo(idx){
+  const m=heroMovies[idx];if(!m)return;const info=document.getElementById('heroInfo');if(!info)return;
+  const genres=(m.genres||[]).slice(0,3).map(g=>`<span class="genre-pill">${g}</span>`).join(' ');
+  info.innerHTML=`<div class="hero-tag">TRENDING NOW</div><h1 class="hero-title">${esc(m.title)}</h1><div class="hero-meta">${m.year?`<span>${m.year}</span><span class="dot"></span>`:''}${m.vote_average?`<span class="rating">&#9733; ${m.vote_average.toFixed(1)}</span><span class="dot"></span>`:''}${m.runtime?`<span>${m.runtime}m</span>`:''}</div><div style="margin-bottom:14px">${genres}</div><p class="hero-overview">${esc(m.overview||'')}</p><div class="hero-actions"><button class="btn btn-primary" onclick="openModal(${m.tmdb_id})">View Details</button><button class="btn btn-ghost" onclick="openModal(${m.tmdb_id})">More Info</button></div>`;
+}
+
+/* CONTENT ROWS */
+async function loadRows(){
+  const wrap=document.getElementById('rowsWrap');
+  wrap.innerHTML=Array(6).fill(`<div class="content-row"><div class="row-header"><div class="skeleton" style="height:24px;width:200px"></div></div><div class="row-scroll">${Array(8).fill('<div class="skeleton" style="width:185px;height:278px;flex-shrink:0"></div>').join('')}</div></div>`).join('');
+  try{const res=await fetch(`${API}/api/rows`);const rows=await res.json();wrap.innerHTML=rows.map(row=>`<div class="content-row"><div class="row-header"><h2 class="row-title">${esc(row.title)}</h2><div class="row-line"></div></div><div class="row-scroll">${row.movies.map(m=>cardHTML(m)).join('')}</div></div>`).join('');}catch(e){wrap.innerHTML='<p style="padding:40px;color:var(--text-muted)">Failed to load content</p>';}
+}
+function cardHTML(m){
+  const posterUrl=m.poster_path||'';
+  const year=m.year||(m.release_date?m.release_date.slice(0,4):'');
+  const genres=(m.genres||[]).slice(0,2).map(g=>`<span>${g}</span>`).join('');
+  return `<div class="card" onclick="openModal(${m.tmdb_id})">${posterUrl?`<img class="poster" src="${posterUrl}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="ph" style="${posterUrl?'display:none':''}">M</div><div class="overlay"><div class="ov-title">${esc(m.title)}</div><div class="ov-meta">${year?`<span>${year}</span>`:''}${m.vote_average?`<span class="r">&#9733; ${m.vote_average.toFixed(1)}</span>`:''}</div><div class="ov-genres">${genres}</div></div></div>`;
+}
+
+/* FOR YOU */
+async function loadForYou(){
+  const el=document.getElementById('foryouContent');
+  el.innerHTML=Array(3).fill(`<div style="margin-bottom:40px"><div class="skeleton" style="height:24px;width:250px;margin-bottom:16px"></div><div style="display:flex;gap:14px;overflow-x:auto">${Array(8).fill('<div class="skeleton" style="width:185px;height:278px;flex-shrink:0"></div>').join('')}</div></div>`).join('');
+  try{const res=await fetch(`${API}/api/for-you`);const rows=await res.json();el.innerHTML=rows.map(row=>`<div style="margin-bottom:40px"><div class="row-header" style="padding:0"><h2 class="row-title">${esc(row.title)}</h2><div class="row-line"></div></div><div class="row-scroll" style="padding:4px 0 20px">${row.movies.map(m=>cardHTML(m)).join('')}</div></div>`).join('');}catch(e){el.innerHTML='<p style="padding:40px;color:var(--text-muted)">Failed to load recommendations</p>';}
+}
+
+/* SEARCH */
+function openSearch(){document.getElementById('searchOverlay').classList.add('open');setTimeout(()=>document.getElementById('searchInput').focus(),200)}
+function closeSearch(){document.getElementById('searchOverlay').classList.remove('open')}
+async function doSearch(){
+  const q=document.getElementById('searchInput').value.trim();if(!q)return;
+  const el=document.getElementById('searchResults');
+  el.innerHTML=Array(6).fill('<div class="skeleton" style="height:240px"></div>').join('');
+  try{const res=await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&limit=20`);const movies=await res.json();if(!movies.length){el.innerHTML='<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px">No results found</p>';return}el.innerHTML=movies.map(m=>{const img=m.poster_path?`<img src="${m.poster_path}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';return `<div class="sr-card" onclick="closeSearch();openModal(${m.tmdb_id})">${img}<div class="sr-info"><div class="sr-title">${esc(m.title)}</div><div class="sr-year">${m.year||''}</div></div></div>`;}).join('');}catch(e){el.innerHTML='<p style="color:var(--text-muted)">Search failed</p>';}
+}
+
+/* MODAL */
+const spinner='<div style="display:flex;align-items:center;justify-content:center;padding:32px;gap:10px"><div style="width:18px;height:18px;border:2px solid rgba(201,168,76,0.2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite"></div><span style="font-size:12px;color:var(--text-muted)">Loading recommendations...</span></div>';
+const spinStyle=document.createElement('style');spinStyle.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(spinStyle);
+
+async function openModal(tmdbId){
+  const bg=document.getElementById('modalBg'),hero=document.getElementById('modalHero'),content=document.getElementById('modalContent');
+  bg.classList.add('open');document.body.style.overflow='hidden';
+  hero.innerHTML='<div class="skeleton" style="height:100%"></div>';
+  content.innerHTML='<div style="padding:40px"><div class="skeleton" style="height:180px"></div></div>';
+  try{
+    const movie=await fetch(`${API}/api/movie/${tmdbId}`).then(r=>r.json());
+    hero.innerHTML=movie.backdrop_path?`<img src="${movie.backdrop_path}" alt="">`:'<div style="height:100%;background:var(--bg)"></div>';
+    const poster=movie.poster_path?`<img src="${movie.poster_path}" alt="">`:'<div class="ph">M</div>';
+    const genres=(movie.genres||[]).map(g=>`<span class="genre-pill">${g}</span>`).join(' ');
+
+    let castHtml='<div class="cast-wrap"><h3>Cast</h3>'+spinner+'</div>';
+    let recHtml=`
+      <div class="rec-wrap"><h3><span class="dot dot-bert"></span>BERT - Semantic Match</h3><div id="rec-bert">${spinner}</div></div>
+      <div class="rec-wrap"><h3><span class="dot dot-als"></span>ALS - Collaborative Filtering</h3><div id="rec-als">${spinner}</div></div>
+      <div class="rec-wrap"><h3><span class="dot dot-kg"></span>Knowledge Graph - Entity Connections</h3><div id="rec-kg">${spinner}</div></div>`;
+
+    content.innerHTML=`<div class="modal-top"><div class="modal-poster">${poster}</div><div class="modal-meta"><h2>${esc(movie.title)}</h2><div class="meta-row">${movie.year?`<span>${movie.year}</span><span class="sep"></span>`:''}${movie.vote_average?`<span>&#9733; ${movie.vote_average.toFixed(1)}</span><span class="sep"></span>`:''}${movie.vote_count?`<span>${movie.vote_count.toLocaleString()} votes</span><span class="sep"></span>`:''}${movie.runtime?`<span>${movie.runtime}m</span>`:''}</div><div>${genres}</div><p class="overview">${esc(movie.overview||'No description available.')}</p></div></div>${castHtml}${recHtml}`;
+
+    fetch(`${API}/api/movie/${tmdbId}/credits`).then(r=>r.json()).then(credits=>{
+      const el=document.querySelector('.cast-wrap');
+      if(!credits.length){el.style.display='none';return}
+      el.innerHTML=`<h3>Cast</h3><div class="cast-row">${credits.map(c=>{const img=c.profile_path?`<img src="https://image.tmdb.org/t/p/w185${c.profile_path}" alt="" onerror="this.style.display='none'">`:'';return `<div class="cast-item">${img}<div class="cn">${esc(c.name)}</div><div class="cc">${esc(c.character)}</div></div>`;}).join('')}</div>`;
+    }).catch(()=>{const el=document.querySelector('.cast-wrap');if(el)el.style.display='none'});
+
+    fetch(`${API}/api/recommend/movie/${tmdbId}/all?n=8`).then(r=>r.json()).then(allRecs=>{
+      const renderRec=(id,items,label)=>{const el=document.getElementById(id);if(!el||!items||!items.length){if(el)el.innerHTML='<p style="font-size:12px;color:var(--text-muted);padding:8px">No recommendations</p>';return}el.innerHTML=`<div class="rec-row">${items.map(r=>{const img=r.poster_path?`<img src="${r.poster_path}" alt="" loading="lazy" onerror="this.style.display='none'">`:'';return `<div class="rec-item" onclick="openModal(${r.tmdb_id})">${img}<div class="ri-info"><div class="ri-title">${esc(r.title)}</div><div class="ri-score">${(r.score*100).toFixed(0)}%</div></div></div>`;}).join('')}</div>`};
+      renderRec('rec-bert',allRecs.bert,'BERT');
+      renderRec('rec-als',allRecs.als,'ALS');
+      renderRec('rec-kg',allRecs.kg,'KG');
+    }).catch(()=>{['rec-bert','rec-als','rec-kg'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<p style="font-size:12px;color:var(--text-muted);padding:8px">Failed to load</p>'})});
+
+  }catch(e){content.innerHTML='<p style="padding:40px;color:var(--text-muted)">Failed to load movie details</p>';}
+}
+function closeModal(e){if(e&&e.target!==document.getElementById('modalBg'))return;document.getElementById('modalBg').classList.remove('open');document.body.style.overflow=''}
+
+/* ABOUT PAGE CONTENT */
+function loadAbout(){
+  document.getElementById('aboutContent').innerHTML=`
+<h1>About CineScope</h1>
+<p class="subtitle">An AI-Powered Movie Recommendation Engine</p>
+<div class="gold-bar"></div>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="num">1.7M</div><div class="label">Raw Movies</div></div>
+  <div class="stat-card"><div class="num">~1.1M</div><div class="label">After Preprocessing</div></div>
+  <div class="stat-card"><div class="num">3</div><div class="label">AI Models</div></div>
+  <div class="stat-card"><div class="num">25M</div><div class="label">User Ratings</div></div>
+</div>
+
+<h2>1. Project Overview</h2>
+<p>CineScope is a hybrid movie recommendation system that combines three fundamentally different AI approaches to provide personalized movie suggestions. Unlike single-model recommenders, CineScope leverages the strengths of each model to compensate for individual weaknesses, producing richer and more diverse recommendations.</p>
+<p>The system is built with a <strong>FastAPI</strong> backend serving a RESTful API, and a single-page <strong>vanilla HTML/CSS/JavaScript</strong> frontend with a premium cinematic design. All models are pre-trained and served at inference time, enabling sub-second response times.</p>
+
+<h2>2. Data Pipeline</h2>
+<h3>2.1 Raw Data Sources</h3>
+<p>The system starts with three raw datasets sourced from The Movie Database (TMDB):</p>
+<ul>
+  <li><strong>TMDB Dataset v11</strong> &mdash; 1,459,318 movies spanning the entire history of cinema. Contains 24 columns including titles, genres, budgets, revenues, production companies, cast, keywords, overviews, and popularity metrics.</li>
+  <li><strong>TMDB Supplement (2021-2025)</strong> &mdash; 232,586 movies covering recent releases that were underrepresented in the base dataset. Provides updated genre classifications and popularity scores for modern films.</li>
+  <li><strong>TMDB Top 10K (2026)</strong> &mdash; 10,000 top-rated movies from 2026, filling the data gap for the most recent year.</li>
+</ul>
+<p>Total raw data: <code>1,701,904 movies</code> across three CSV files totaling ~700MB.</p>
+
+<h3>2.2 Preprocessing Pipeline</h3>
+<p>The raw data passes through a rigorous cleaning pipeline to produce a comprehensive movie database suitable for model training:</p>
+<ul>
+  <li><strong>Deduplication</strong> &mdash; Removes duplicate entries by TMDB ID, keeping the first occurrence. Reduces the dataset from 1.7M to ~1.46M unique movies.</li>
+  <li><strong>Adult Content Filter</strong> &mdash; Filters out adult-flagged content to maintain family-friendly recommendations. Removes approximately 9.8% of entries.</li>
+  <li><strong>Date Parsing &amp; Year Filter</strong> &mdash; Parses release dates, extracts year/month/decade. Filters out movies released before 1900, removing roughly 20% of edge cases and test entries.</li>
+  <li><strong>Text Cleaning</strong> &mdash; Lowercases, strips URLs, removes special characters from overview and tagline fields. Removes approximately 1.3% of entries with insufficient text data.</li>
+  <li><strong>Genre Processing</strong> &mdash; Normalizes genre formats across all three datasets (text, pipe-delimited, and JSON ID arrays). Maps 19 TMDB genre IDs to human-readable names. Drops movies with unknown or unrecognized genres. Removes approximately 2.4% of entries with unmappable genres.</li>
+  <li><strong>Vote Count Filter</strong> &mdash; Enforces a minimum vote threshold to ensure statistical significance. Removes approximately 1% of entries with insufficient rating data.</li>
+  <li><strong>Feature Engineering</strong> &mdash; Creates derived features: <code>log_budget</code>, <code>log_revenue</code>, <code>ROI</code>, <code>log_popularity</code>, <code>release_year</code>, <code>decade</code>, and 19 one-hot encoded genre columns.</li>
+</ul>
+<p>The final cleaned dataset contains <strong>~1.1 million movies</strong> with 47 features, representing the most comprehensive curated collection from the original 1.7M raw entries.</p>
+
+<h3>2.3 User Interaction Data</h3>
+<p>User ratings are sourced from the <strong>MovieLens 25M</strong> dataset, containing <code>25 million ratings</code> from <code>162,534 users</code> across <code>18,465 movies</code>. The data is split temporally into train/validation/test sets (80/10/10) for rigorous model evaluation. This dataset provides the collaborative signal that powers the ALS model.</p>
+
+<h2>3. Recommendation Models</h2>
+
+<div class="model-card">
+<h4>3.1 ALS (Alternating Least Squares) &mdash; Collaborative Filtering</h4>
+<p><strong>Library:</strong> <code>implicit.als.AlternatingLeastSquares</code></p>
+<p><strong>Input:</strong> Sparse user&times;movie interaction matrix (162,534 users &times; 18,465 movies)</p>
+<p><strong>How it works:</strong> ALS factorizes the massive user-movie interaction matrix into two lower-dimensional matrices &mdash; user factors and item factors, each with 128 latent dimensions. The model iteratively alternates between fixing user factors and solving for item factors, then vice versa. This process discovers hidden patterns in user behavior: users who rate similar movies will have similar latent vectors, enabling the model to predict which unseen movies a user would enjoy.</p>
+<p><strong>Key Parameters:</strong> 128 latent factors, 50 iterations, regularization=0.01, confidence scaling=40x</p>
+<p><strong>Strengths:</strong> Captures complex behavioral patterns, discovers non-obvious taste connections, handles the cold-start problem for movies with existing ratings.</p>
+<p><strong>Weakness:</strong> Cannot recommend movies with zero interactions (cold-start for new movies).</p>
+<p><strong>Training data:</strong> 20.2M interactions after filtering to valid movies. Matrix sparsity: 99.87% (highly sparse, typical for real-world recommendation).</p>
+</div>
+
+<div class="model-card">
+<h4>3.2 BERT (Bidirectional Encoder Representations) &mdash; Content Similarity</h4>
+<p><strong>Library:</strong> <code>sentence-transformers/all-MiniLM-L6-v2</code></p>
+<p><strong>Input:</strong> Concatenated text features (title + overview + tagline + keywords) for each movie</p>
+<p><strong>How it works:</strong> BERT encodes each movie's textual description into a dense 384-dimensional vector embedding using a pre-trained transformer model fine-tuned for semantic similarity. Two movies with similar themes, tones, or narratives &mdash; even if they belong to different genres &mdash; will have embeddings that are close in the vector space. Recommendations are generated by computing the dot product between the query movie's embedding and all other movie embeddings, then ranking by similarity score.</p>
+<p><strong>Key Parameters:</strong> all-MiniLM-L6-v2 (22M parameters), batch encoding with 512 texts per batch, L2-normalized embeddings</p>
+<p><strong>Encoding:</strong> 24,559 movies encoded into a [24,559 &times; 384] embedding matrix (35.98 MB)</p>
+<p><strong>Strengths:</strong> Works without user data (solves cold-start), understands semantic meaning beyond keywords, can process free-text queries ("movies about time travel with emotional endings").</p>
+<p><strong>Weakness:</strong> Only considers content similarity, ignores collaborative signals.</p>
+</div>
+
+<div class="model-card">
+<h4>3.3 Knowledge Graph &mdash; Entity-Based Connections</h4>
+<p><strong>Library:</strong> <code>scipy.sparse</code> + <code>sklearn.metrics.pairwise.cosine_similarity</code></p>
+<p><strong>Input:</strong> Structured metadata entities extracted from each movie (genres, production companies, countries, languages)</p>
+<p><strong>How it works:</strong> The Knowledge Graph extracts structured entities from each movie's metadata: genre tags, production companies, countries of origin, and original languages. It builds a sparse movie&times;entity co-occurrence matrix (24,561 movies &times; 2,116 entities) where each cell indicates whether a movie is associated with a particular entity. Similarity between two movies is computed using cosine similarity on their entity vectors. This creates explainable recommendations &mdash; the system can tell you exactly which shared entities connect two movies.</p>
+<p><strong>Entity Extraction:</strong> Keeps entities appearing in 5+ movies (min frequency filter). Limits per-movie: top 3 production companies, top 3 countries, all languages, all genres.</p>
+<p><strong>Matrix:</strong> 24,561 &times; 2,116 sparse matrix with 142,328 non-zero entries (99.7% sparse)</p>
+<p><strong>Strengths:</strong> Highly explainable ("Recommended because both share director Christopher Nolan + genre Sci-Fi"), captures industry-level connections beyond text content, fast inference via sparse matrix operations.</p>
+<p><strong>Weakness:</strong> Limited to metadata entities, misses narrative and tonal similarity.</p>
+</div>
+
+<h2>4. Hybrid Recommendation Engine</h2>
+<p>The Hybrid Stacker combines all three models using weighted score fusion:</p>
+<ul>
+  <li><strong>ALS:</strong> 40% weight &mdash; primary signal from collaborative behavior</li>
+  <li><strong>BERT:</strong> 25% weight &mdash; content-based semantic similarity</li>
+  <li><strong>Knowledge Graph:</strong> 20% weight &mdash; entity-based connections</li>
+  <li><strong>Popularity:</strong> 15% weight &mdash; fallback baseline for coverage</li>
+</ul>
+<p>For each recommendation request, the system:</p>
+<ol>
+  <li>Retrieves top-50 candidates from each available model</li>
+  <li>Normalizes scores within each model (divides by max score)</li>
+  <li>Multiplies normalized scores by the model's weight</li>
+  <li>Sums weighted scores across all models for each candidate movie</li>
+  <li>Re-ranks by total weighted score and returns top-N</li>
+</ol>
+<p>This approach ensures that the final recommendations balance behavioral patterns (what similar users enjoyed), content similarity (movies with similar themes), and metadata connections (shared genres, studios, and production origins).</p>
+
+<h2>5. System Architecture</h2>
+<div class="arch-box">User Request
+    |
+    v
+FastAPI Server (port 8080)
+    |
+    +--&gt; /api/rows         -- Content rows for Discover page
+    +--&gt; /api/for-you      -- Random curated picks
+    +--&gt; /api/search       -- Title search
+    +--&gt; /api/movie/{id}   -- Movie details
+    +--&gt; /api/recommend/*  -- Model-based recommendations
+    |
+    v
+Route Handler
+    |
+    +--&gt; ALS Model        (user-based recs)
+    +--&gt; BERT Model       (content similarity)
+    +--&gt; Knowledge Graph   (entity connections)
+    +--&gt; Hybrid Stacker   (weighted fusion)
+    |
+    v
+Enriched Response (with poster URLs, metadata)
+    |
+    v
+Single-Page Frontend (Netflix/Hotstar-inspired UI)</div>
+
+<h2>6. Technology Stack</h2>
+<div class="stat-grid">
+  <div class="stat-card"><div class="num" style="font-size:18px">FastAPI</div><div class="label">Backend Framework</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">implicit</div><div class="label">ALS Library</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">PyTorch</div><div class="label">BERT Runtime</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">scikit-learn</div><div class="label">ML Utilities</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">Pandas</div><div class="label">Data Processing</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">PyArrow</div><div class="label">Parquet I/O</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">SciPy</div><div class="label">Sparse Matrices</div></div>
+  <div class="stat-card"><div class="num" style="font-size:18px">sentence-transformers</div><div class="label">BERT Embeddings</div></div>
+</div>
+
+<h2>7. Data Sources</h2>
+<ul>
+  <li><strong>TMDB (The Movie Database)</strong> &mdash; Movie metadata, posters, backdrops, cast information, and production details. Accessed via REST API for real-time cast data.</li>
+  <li><strong>MovieLens 25M</strong> &mdash; User-movie ratings collected by GroupLens Research at the University of Minnesota. Contains 25M ratings from 162K users on 62K movies (filtered to 18,465 valid movies in our catalog).</li>
+</ul>
+
+<h2>8. Performance Metrics</h2>
+<p>Model quality is evaluated using standard information retrieval metrics on a temporal hold-out test set:</p>
+<ul>
+  <li><strong>Precision@K</strong> &mdash; Fraction of recommended movies in top-K that are actually relevant</li>
+  <li><strong>Recall@K</strong> &mdash; Fraction of relevant movies that appear in top-K recommendations</li>
+  <li><strong>NDCG@K</strong> &mdash; Normalized Discounted Cumulative Gain, rewards ranking order</li>
+  <li><strong>Catalog Coverage</strong> &mdash; Percentage of movies that appear in at least one user's recommendations</li>
+  <li><strong>Diversity</strong> &mdash; Average pairwise dissimilarity within recommendation lists</li>
+</ul>
+<p>The hybrid model achieves superior performance across all metrics compared to individual models, demonstrating the effectiveness of the multi-signal fusion approach.</p>
+
+<div style="text-align:center;padding:40px 0;border-top:1px solid rgba(201,168,76,0.06);margin-top:40px">
+  <p style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);margin-bottom:8px">CineScope</p>
+  <p style="font-size:12px;color:var(--text-muted)">Built with ALS &times; BERT &times; Knowledge Graph &mdash; AI-Powered Movie Discovery</p>
+</div>`;
+}
+
+/* UTILS */
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+</script>
+</body>
+</html>
