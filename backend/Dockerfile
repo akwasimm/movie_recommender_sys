@@ -7,11 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libopenblas-dev liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps (CPU-only, no torch)
+# Install Python deps (no torch for smaller image)
 COPY requirements-prod.txt .
 RUN pip install --no-cache-dir -r requirements-prod.txt
 
-# Copy backend only
+# Copy backend
 COPY config/ config/
 COPY src/ src/
 COPY data/processed/ data/processed/
@@ -23,6 +23,6 @@ COPY models/collaborative/als_meta.npz models/collaborative/
 COPY models/graph/ models/graph/
 COPY run.py .
 
-EXPOSE 8080
+EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]

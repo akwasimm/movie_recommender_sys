@@ -1,4 +1,5 @@
 import logging
+import threading
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,12 +24,12 @@ als_model = ALSRecommender()
 bert_model = BERTRecommender()
 kg_model = KnowledgeGraphRecommender()
 hybrid_model: HybridRecommender | None = None
+models_ready = False
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global hybrid_model
-    log.info("Loading CineScope models...")
+def _load_models():
+    global hybrid_model, models_ready
+    log.info("Loading CineScope models in background...")
     data_ok = movie_data.load()
     if data_ok:
         log.info(f"Movies loaded: {len(movie_data.movies)} titles")
@@ -44,6 +45,14 @@ async def lifespan(app: FastAPI):
         kg=kg_model if kg_ok else None,
         movies_df=movie_data.movies,
     )
+    models_ready = True
+    log.info("All models ready")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    thread = threading.Thread(target=_load_models, daemon=True)
+    thread.start()
     yield
     log.info("CineScope shutting down")
 
