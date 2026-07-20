@@ -4,7 +4,7 @@ WORKDIR /app
 
 # System deps for implicit (BLAS/LAPACK)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libopenblas-dev liblapack-dev \
+    build-essential libopenblas-dev liblapack-dev libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps (no torch for smaller image)
